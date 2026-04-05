@@ -47,7 +47,22 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   console.log("uploading thumbnail for video", videoId, "by user", userID);
 
-  // TODO: implement the upload here
+  const formData = await req.formData();
+
+  const thumbnail: File = formData.get("thumbnail") as File;
+  console.log(thumbnail);
+  console.log(thumbnail.type);
+  if (!(thumbnail instanceof File)) {
+    throw new BadRequestError("Filetype errorr");
+  }
+
+  const MAX_UPLOAD_SIZE = 10 << 20;
+  const mediaType = thumbnail.type;
+
+  const newThumbnail: Thumbnail = {
+    data: await thumbnail.arrayBuffer(),
+    mediaType: mediaType,
+  };
 
   return respondWithJSON(200, null);
 }
