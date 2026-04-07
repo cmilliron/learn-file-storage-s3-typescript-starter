@@ -4,6 +4,7 @@ import { getVideo, updateVideo } from "../db/videos";
 import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
+import { getThumbnailUrl } from "./assets";
 
 type Thumbnail = {
   data: ArrayBuffer;
@@ -47,12 +48,21 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   console.log("uploading thumbnail for video", videoId, "by user", userID);
 
+  const video = getVideo(cfg.db, videoId);
+  if (!video) {
+    throw new BadRequestError("Video does not exist");
+  }
+
+  if (video.userID != userID) {
+    throw new UserForbiddenError("User not authorized");
+  }
+
   const formData = await req.formData();
 
   const thumbnail: File = formData.get("thumbnail") as File;
 
-  console.log(thumbnail);
-  console.log(thumbnail.type);
+  // console.log(thumbnail);
+  // console.log(thumbnail.type);
 
   if (!(thumbnail instanceof File)) {
     throw new BadRequestError("Filetype errorr");
@@ -64,24 +74,23 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
   }
 
   const mediaType = thumbnail.type;
+  if (!mediaType) {
+    throw new BadRequestError("Missing Content-Type for thumbnail");
+  }
+
+  const fileData = await thumbnail.arrayBuffer();
+  if (!fileData) {
+    throw new Error("Error reading file data");
+  }
 
   const newThumbnail: Thumbnail = {
-    data: await thumbnail.arrayBuffer(),
+    data: fileData,
     mediaType: mediaType,
   };
 
-  const video = getVideo(cfg.db, videoId);
-  if (!video) {
-    throw new BadRequestError("Video does not exist");
-  }
-
-  if (video.userID != userID) {
-    throw new UserForbiddenError("User not authorized");
-  }
-
   videoThumbnails.set(video.id, newThumbnail);
 
-  const thumbnailURL = `http://localhost:${cfg.port}/api/thumbnails/${video.id}`;
+  const thumbnailURL = getThumbnailUrl(cfg, videoId);
 
   // Update Video in DB
   video.thumbnailURL = thumbnailURL;
