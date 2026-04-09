@@ -4,7 +4,7 @@ import { getVideo, updateVideo } from "../db/videos";
 import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
-import { getThumbnailUrl } from "./assets";
+import { createDataLink, getThumbnailUrl } from "./assets";
 
 type Thumbnail = {
   data: ArrayBuffer;
@@ -60,13 +60,12 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
   const formData = await req.formData();
 
   const thumbnail: File = formData.get("thumbnail") as File;
-
-  // console.log(thumbnail);
-  // console.log(thumbnail.type);
-
   if (!(thumbnail instanceof File)) {
     throw new BadRequestError("Filetype errorr");
   }
+
+  // console.log(thumbnail);
+  // console.log(thumbnail.type);
 
   const MAX_UPLOAD_SIZE = 10 << 20;
   if (thumbnail.size > MAX_UPLOAD_SIZE) {
@@ -82,6 +81,8 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
   if (!fileData) {
     throw new Error("Error reading file data");
   }
+  const buffer = Buffer.from(fileData);
+  const imageData = buffer.toString("base64");
 
   const newThumbnail: Thumbnail = {
     data: fileData,
@@ -90,10 +91,12 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   videoThumbnails.set(video.id, newThumbnail);
 
-  const thumbnailURL = getThumbnailUrl(cfg, videoId);
+  // const thumbnailURL = getThumbnailUrl(cfg, videoId);
+
+  const thumbnailData = createDataLink(newThumbnail.mediaType, imageData);
 
   // Update Video in DB
-  video.thumbnailURL = thumbnailURL;
+  video.thumbnailURL = thumbnailData;
   updateVideo(cfg.db, video);
 
   return respondWithJSON(200, video);

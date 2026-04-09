@@ -11,3 +11,7 @@ export function ensureAssetsDir(cfg: ApiConfig) {
 export function getThumbnailUrl(cfg: ApiConfig, videoId: string) {
   return `http://localhost:${cfg.port}/api/thumbnails/${videoId}`;
 }
+
+export function createDataLink(mediaType: string, thumbnailData: string) {
+  return `data:${mediaType};base64,${thumbnailData}`;
+}
