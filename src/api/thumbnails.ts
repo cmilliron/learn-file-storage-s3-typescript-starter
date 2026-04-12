@@ -4,7 +4,12 @@ import { getVideo, updateVideo } from "../db/videos";
 import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
-import { createDataLink, ensureAssetsDir, getExtFromMediaType } from "./assets";
+import {
+  createDataLink,
+  ensureAssetsDir,
+  getExtFromMediaType,
+  getThumbnailUrl,
+} from "./assets";
 import path from "node:path";
 
 export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
@@ -60,7 +65,7 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   // const thumbnailData = createDataLink(mediaType, imageData);
 
-  const thumbnailUrl = `http://localhost:${cfg.port}/assets/${fileName}`;
+  const thumbnailUrl = getThumbnailUrl(cfg, fileName);
 
   // Update Video in DB
   video.thumbnailURL = thumbnailUrl;

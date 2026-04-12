@@ -8,8 +8,8 @@ export function ensureAssetsDir(cfg: ApiConfig) {
   }
 }
 
-export function getThumbnailUrl(cfg: ApiConfig, videoId: string) {
-  return `http://localhost:${cfg.port}/api/thumbnails/${videoId}`;
+export function getThumbnailUrl(cfg: ApiConfig, filename: string) {
+  return `http://localhost:${cfg.port}/assets/${filename}`;
 }
 
 export function createDataLink(mediaType: string, thumbnailData: string) {
