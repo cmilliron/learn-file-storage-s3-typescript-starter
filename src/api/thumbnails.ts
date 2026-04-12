@@ -4,7 +4,7 @@ import { getVideo, updateVideo } from "../db/videos";
 import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
-import { createDataLink, ensureAssetsDir } from "./assets";
+import { createDataLink, ensureAssetsDir, getExtFromMediaType } from "./assets";
 import path from "node:path";
 
 export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
@@ -47,15 +47,15 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
     throw new BadRequestError("Missing Content-Type for thumbnail");
   }
 
-  const fileData = await thumbnail.arrayBuffer();
-  if (!fileData) {
-    throw new Error("Error reading file data");
-  }
-  const buffer = Buffer.from(fileData);
+  // const fileData = await thumbnail.arrayBuffer();
+  // if (!fileData) {
+  //   throw new Error("Error reading file data");
+  // }
+  // const buffer = Buffer.from(fileData);
   ensureAssetsDir(cfg);
-  const fileName = `${videoId}.${mediaType.split("/").slice(-1)[0]}`;
+  const fileName = `${videoId}.${getExtFromMediaType(mediaType)}`;
   const destination = path.join(cfg.assetsRoot, fileName);
-  Bun.write(destination, fileData);
+  Bun.write(destination, thumbnail);
   // const imageData = buffer.toString("base64");
 
   // const thumbnailData = createDataLink(mediaType, imageData);

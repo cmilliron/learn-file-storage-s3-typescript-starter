@@ -15,3 +15,11 @@ export function getThumbnailUrl(cfg: ApiConfig, videoId: string) {
 export function createDataLink(mediaType: string, thumbnailData: string) {
   return `data:${mediaType};base64,${thumbnailData}`;
 }
+
+export function getExtFromMediaType(mediaType: string) {
+  const parts = mediaType.split("/");
+  if (parts.length !== 2) {
+    return ".bin";
+  }
+  return parts[1];
+}
