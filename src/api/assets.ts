@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync } from "fs";
+import path from "node:path";
 
 import type { ApiConfig } from "../config";
 
@@ -22,4 +23,8 @@ export function getExtFromMediaType(mediaType: string) {
     return ".bin";
   }
   return parts[1];
+}
+
+export function getAssetPath(cfg: ApiConfig, filename: string) {
+  return path.join(cfg.assetsRoot, filename);
 }

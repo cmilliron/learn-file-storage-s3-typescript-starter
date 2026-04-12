@@ -7,10 +7,10 @@ import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
 import {
   createDataLink,
   ensureAssetsDir,
+  getAssetPath,
   getExtFromMediaType,
   getThumbnailUrl,
 } from "./assets";
-import path from "node:path";
 
 export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
   const { videoId } = req.params as { videoId?: string };
@@ -58,14 +58,14 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
   // }
   // const buffer = Buffer.from(fileData);
   ensureAssetsDir(cfg);
-  const fileName = `${videoId}.${getExtFromMediaType(mediaType)}`;
-  const destination = path.join(cfg.assetsRoot, fileName);
+  const filename = `${videoId}.${getExtFromMediaType(mediaType)}`;
+  const destination = getAssetPath(cfg, filename);
   Bun.write(destination, thumbnail);
   // const imageData = buffer.toString("base64");
 
   // const thumbnailData = createDataLink(mediaType, imageData);
 
-  const thumbnailUrl = getThumbnailUrl(cfg, fileName);
+  const thumbnailUrl = getThumbnailUrl(cfg, filename);
 
   // Update Video in DB
   video.thumbnailURL = thumbnailUrl;
