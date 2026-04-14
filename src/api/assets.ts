@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync } from "fs";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 
 import type { ApiConfig } from "../config";
 
@@ -27,4 +28,8 @@ export function getExtFromMediaType(mediaType: string) {
 
 export function getAssetPath(cfg: ApiConfig, filename: string) {
   return path.join(cfg.assetsRoot, filename);
+}
+
+export function createThumbName() {
+  return randomBytes(32).toString("base64url");
 }

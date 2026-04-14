@@ -6,6 +6,7 @@ import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
 import {
   createDataLink,
+  createThumbName,
   ensureAssetsDir,
   getAssetPath,
   getExtFromMediaType,
@@ -61,7 +62,7 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
   // }
   // const buffer = Buffer.from(fileData);
   ensureAssetsDir(cfg);
-  const filename = `${videoId}.${getExtFromMediaType(mediaType)}`;
+  const filename = `${createThumbName()}.${getExtFromMediaType(mediaType)}`;
   const destination = getAssetPath(cfg, filename);
   Bun.write(destination, thumbnail);
   // const imageData = buffer.toString("base64");
