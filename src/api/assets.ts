@@ -30,6 +30,10 @@ export function getAssetPath(cfg: ApiConfig, filename: string) {
   return path.join(cfg.assetsRoot, filename);
 }
 
-export function createThumbName() {
+export function createHexFileName() {
   return randomBytes(32).toString("base64url");
+}
+
+export function createS3Link(cfg: ApiConfig, fileKey: string) {
+  return `https://${cfg.s3Bucket}.s3.${cfg.s3Region}.amazonaws.com/${fileKey}`;
 }
