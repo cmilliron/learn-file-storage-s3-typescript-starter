@@ -10,6 +10,7 @@ import {
   ensureAssetsDir,
   getAssetPath,
   getExtFromMediaType,
+  getVideoAspectRatio,
 } from "./assets";
 
 export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
@@ -30,7 +31,6 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   if (!video) {
     throw new BadRequestError("Video does not exist");
   }
-
   if (video.userID != userID) {
     throw new UserForbiddenError("User not authorized");
   }
@@ -38,7 +38,9 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   // Parse video
   const formData = await req.formData();
   const videoFile = formData.get("video") as File;
-
+  if (!(videoFile instanceof File)) {
+    throw new BadRequestError("Video file missing");
+  }
   // Validate size
   if (videoFile.size > MAX_UPLOAD_SIZE) {
     throw new BadRequestError("file size to big");
@@ -53,18 +55,22 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   // Temporarily save file
   ensureAssetsDir(cfg);
   const filename = `${createHexFileName()}.${getExtFromMediaType(mediaType)}`;
-  const destination = getAssetPath(cfg, filename);
+  let destination = getAssetPath(cfg, filename);
   await Bun.write(destination, videoFile);
 
   // upload to S3 Bucket
-  const tmpFile = Bun.file(destination);
-  const s3File: S3File = cfg.s3Client.file(filename);
+  const fastFile = await processVideoForFastStart(destination);
+  await Bun.file(destination).delete();
+  const tmpFile = Bun.file(fastFile);
+  const aspectRatio = await getVideoAspectRatio(fastFile);
+  const key = `${aspectRatio}/${filename}`;
+  const s3File: S3File = cfg.s3Client.file(key);
   await s3File.write(tmpFile, {
     type: mediaType, // Ensures the browser plays it instead of downloading it
   });
 
   // Update video url in db
-  const videoUrl = createS3Link(cfg, filename);
+  const videoUrl = createS3Link(cfg, key);
   video.videoURL = videoUrl;
   updateVideo(cfg.db, video);
 
@@ -72,4 +78,39 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   await tmpFile.delete();
 
   return respondWithJSON(200, null);
+}
+
+async function processVideoForFastStart(inputFilePath: string) {
+  const outputFilePath = inputFilePath.split(".mp4")[0] + ".processed.mp4";
+  const process = Bun.spawn(
+    [
+      "ffmpeg",
+      "-i",
+      inputFilePath,
+      "-movflags",
+      "faststart",
+      "-map_metadata",
+      "0",
+      "-codec",
+      "copy",
+      "-f",
+      "mp4",
+      outputFilePath,
+    ],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
+
+  const stdOut = process.stdout;
+  const stdErr = process.stderr;
+
+  const exitCode = await process.exited;
+
+  if (exitCode !== 0) {
+    throw new Error(`ffprobe error: ${stdErr}`);
+  }
+
+  return outputFilePath;
 }
