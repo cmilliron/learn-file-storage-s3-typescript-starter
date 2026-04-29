@@ -1,7 +1,7 @@
 import { respondWithJSON } from "./json";
 import { getBearerToken, validateJWT } from "../auth";
 import { BadRequestError, UserForbiddenError } from "./errors";
-import { getVideo, updateVideo } from "../db/videos";
+import { getVideo, updateVideo, type Video } from "../db/videos";
 import { type ApiConfig } from "../config";
 import type { BunRequest, S3File } from "bun";
 import {
@@ -70,14 +70,16 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   });
 
   // Update video url in db
-  const videoUrl = createS3Link(cfg, key);
+  // const videoUrl = createS3Link(cfg, key);
+  const videoUrl = `${key}`;
   video.videoURL = videoUrl;
   updateVideo(cfg.db, video);
 
   //Delete file
   await tmpFile.delete();
 
-  return respondWithJSON(200, null);
+  const presignedVideo = dbVideoToSignedVideo(cfg, video);
+  return respondWithJSON(200, presignedVideo);
 }
 
 async function processVideoForFastStart(inputFilePath: string) {
@@ -113,4 +115,29 @@ async function processVideoForFastStart(inputFilePath: string) {
   }
 
   return outputFilePath;
+}
+
+async function generatePresignedURL(
+  cfg: ApiConfig,
+  key: string,
+  expireTime: number,
+) {
+  const presignedUrl = cfg.s3Client.presign(`${key}`, {
+    expiresIn: expireTime,
+  });
+  // console.log(presignedUrl);
+  return presignedUrl;
+}
+
+export async function dbVideoToSignedVideo(cfg: ApiConfig, video: Video) {
+  if (!video.videoURL) {
+    return video;
+  }
+  const presignedUrl = await generatePresignedURL(
+    cfg,
+    video.videoURL as string,
+    5 * 60,
+  );
+  video.videoURL = presignedUrl;
+  return video;
 }

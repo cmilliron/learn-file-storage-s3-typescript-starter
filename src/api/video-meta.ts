@@ -5,6 +5,7 @@ import { respondWithJSON } from "./json";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
 import type { BunRequest } from "bun";
 import { getVideoAspectRatio } from "./assets";
+import { dbVideoToSignedVideo } from "./videos";
 
 export async function handlerVideoMetaCreate(cfg: ApiConfig, req: Request) {
   const token = getBearerToken(req.headers);
@@ -56,7 +57,10 @@ export async function handlerVideoGet(cfg: ApiConfig, req: BunRequest) {
     throw new NotFoundError("Couldn't find video");
   }
 
-  return respondWithJSON(200, video);
+  // Covert video to presignedURl video
+  const presignedVideo = await dbVideoToSignedVideo(cfg, video);
+  console.log(presignedVideo);
+  return respondWithJSON(200, presignedVideo);
 }
 
 export async function handlerVideosRetrieve(cfg: ApiConfig, req: Request) {
@@ -65,5 +69,10 @@ export async function handlerVideosRetrieve(cfg: ApiConfig, req: Request) {
 
   const videos = getVideos(cfg.db, userID);
   // await getVideoAspectRatio(videos[0].videoURL as string);
-  return respondWithJSON(200, videos);
+  // Covert to presigned URLs
+  const presignedVideos = await Promise.all(
+    videos.map((video) => dbVideoToSignedVideo(cfg, video)),
+  );
+  // console.log(presignedVideos[0]);
+  return respondWithJSON(200, presignedVideos);
 }
